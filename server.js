@@ -13,7 +13,10 @@ const User = require('./models/User');
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({ 
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000', 
+  credentials: true 
+}));
 app.use(express.json());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your_session_secret',
@@ -32,7 +35,7 @@ passport.deserializeUser(async (id, done) => {
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID || 'dummy_client_id',
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy_secret',
-  callbackURL: '/api/auth/google/callback'
+  callbackURL: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/google/callback`
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     let user = await User.findOne({ email: profile.emails[0].value });
@@ -97,10 +100,10 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/api/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: 'http://localhost:3000' }),
+  passport.authenticate('google', { failureRedirect: process.env.FRONTEND_URL || 'http://localhost:3000' }),
   (req, res) => {
     const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET);
-    res.redirect(`http://localhost:3000?token=${token}`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}?token=${token}`);
   }
 );
 
